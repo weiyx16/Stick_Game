@@ -1,12 +1,14 @@
 # -*— coding: utf-8 *-*
 from myQueue import myQueue
 import copy
+from random import randrange
 
 op = {
     "+": [1,0],
     "-": [0,0],
     "x": [1,1],
     "=": [0,1]}
+op_cand = ["+", "-", "x"]
 
 # op_change:
 ## type1: with stick number change
@@ -77,31 +79,42 @@ num_switch_stick_stable = {
 # [int] [op_list] [int] [op_list] [int]
 
 def equation_satisfy(equation):
+    if not equation_legal(equation):
+        return False
+    else:
+        if equation_hold(equation):
+            return True
+        return False
+
+def equation_legal(equation):
     if '=' not in [equation[1], equation[3]]:
         return False
     elif '=' == equation[1] and '=' == equation[3]:
         return False
     else:
-        if '=' == equation[1]:
-            ans = int(equation[0])
-            num_1 = int(equation[2])
-            num_2 = int(equation[4])
-            op = equation[3]
-        else:
-            ans = int(equation[4])
-            num_1 = int(equation[0])
-            num_2 = int(equation[2])
-            op = equation[1]
-        if op == '+':
-            if ans == num_1 + num_2:
-                return True
-        if op == '-':
-            if ans == num_1 - num_2:
-                return True
-        if op == 'x':
-            if ans == num_1 * num_2:
-                return True
-        return False
+        return True
+
+def equation_hold(equation):
+    if '=' == equation[1]:
+        ans = int(equation[0])
+        num_1 = int(equation[2])
+        num_2 = int(equation[4])
+        op = equation[3]
+    else:
+        ans = int(equation[4])
+        num_1 = int(equation[0])
+        num_2 = int(equation[2])
+        op = equation[1]
+    if op == '+':
+        if ans == num_1 + num_2:
+            return True
+    if op == '-':
+        if ans == num_1 - num_2:
+            return True
+    if op == 'x':
+        if ans == num_1 * num_2:
+            return True
+    return False
 
 def state_switch(switch_list, switch_type, cur_state, element_idx, queue, op = None, digits = None, digit_idx = None):
     
@@ -143,8 +156,8 @@ def state_switch(switch_list, switch_type, cur_state, element_idx, queue, op = N
 
 def num_2_digit(num):
     digits = []
-    while num / 10:
-        next_num = num / 10
+    while num // 10:
+        next_num = num // 10
         digits.append(num - 10 * next_num)
         num = next_num
     digits.append(num)
@@ -157,7 +170,7 @@ def digit_2_num(digits):
         number += digit*pow(10, dex)
     return number
 
-def BFS_Move_One(equation):
+def BFS_Move_One(equation, is_generate = False):
     queue = myQueue(equation + ['Init'])
     ans = []
     while queue.length() > 0:
@@ -199,15 +212,32 @@ def BFS_Move_One(equation):
                 except ValueError as opError:
                     queue = state_switch(op_switch_stick_change_sub, 'Done', cur_state, idx, queue, op=element)
         if cur_state[-1] == 'Done':
-            if equation_satisfy(cur_state[:-1]):
+            if equation_legal(cur_state[:-1]) and equation_hold(cur_state[:-1]) and not is_generate:
+                ans.append(cur_state[:-1])
+            if equation_legal(cur_state[:-1]) and not equation_hold(cur_state[:-1]) and is_generate:
                 ans.append(cur_state[:-1])
     return ans
 
-def ans_filter(ans):
+def list_filter(ans, keep_digits=False, src_equation=None):
+
+    def digit_number_same(num_1, num_2):
+        if int(num_1) >= 10 and int(num_2) >= 10:
+            return True
+        elif int(num_1) < 10 and int(num_2) < 10:
+            return True
+        else:
+            return False
+
     ans_filted = []
     for answer in ans:
         if answer not in ans_filted:
-            ans_filted.append(answer)
+            if keep_digits:
+                if digit_number_same(src_equation[0], answer[0]) and \
+                    digit_number_same(src_equation[2], answer[2]) and \
+                    digit_number_same(src_equation[4], answer[4]):
+                    ans_filted.append(answer)
+            else:
+                ans_filted.append(answer)
     return ans_filted
 
 
@@ -216,11 +246,11 @@ if __name__ == "__main__":
     Search Algorithm Part
     """
     # test case:
-    number_1 = "6"
-    op_1 = "+"
-    number_2 = "4"
+    number_1 = "78"
+    op_1 = "-"
+    number_2 = "8"
     op_2 = "="
-    number_3 = "4"
+    number_3 = "87"
     equation = [number_1, op_1, number_2, op_2, number_3]
 
     # state: number config & operator config & 
@@ -230,5 +260,33 @@ if __name__ == "__main__":
 
     # Try BFS?
     ans = BFS_Move_One(equation)
-    ans = ans_filter(ans)
-    print(ans)
+    if ans:
+        ans = list_filter(ans)
+        print(ans)
+    else:
+        print(" >> No Answer under this situation")
+    
+    # Question Generation
+    equation_true=["100"]
+    while int(equation_true[-1]) > 99 or int(equation_true[-1]) < 0:
+        op = op_cand[randrange(len(op_cand))]
+        if op == '+':
+            num_1 = randrange(100)
+            num_2 = randrange(100)
+            answer = num_1 + num_2
+        if op == '-':
+            num_1 = randrange(100)
+            num_2 = randrange(100)
+            answer = num_1 - num_2
+        else:
+            num_1 = randrange(10)
+            num_2 = randrange(10)
+            answer = num_1 * num_2
+        equation_true = [str(num_1), op, str(num_2), "=", str(answer)]
+    questions = BFS_Move_One(equation_true, is_generate=True)
+    if questions:
+        questions = list_filter(questions, keep_digits = True, src_equation=equation_true)
+        print(" >> Questions Generation with Answer: " + str(equation_true))
+        print(questions)
+    else:
+        print(" >> No Question under this situation with Answer: " + str(equation_true))

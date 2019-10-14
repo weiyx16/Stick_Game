@@ -19,6 +19,7 @@ op_switch_stick_change_sub = {"+": "-", "=": "-"}
 op_switch_stick_stable = {"+": "=", "=": "+"}
 # + <-> = (only possible in situation with 2 or more sticks moved || A=B=C <-> A+B=C or A=B+C)
 
+op_switch_stick_stable_two = {"+": ["x", "="], "x": ["+", "="], "=": ["+", "x"]}
 # op_constrain:
 # must include one and only one "="
 # every "+""-""x": each side of the operator should have 2 numbers
@@ -33,16 +34,16 @@ op_switch_stick_stable = {"+": "=", "=": "+"}
 """
 
 num = {
-    "0": [1,1,1,0,1,1,1],
-    "1": [0,0,1,0,0,1,0],
-    "2": [1,0,1,1,1,0,1],
-    "3": [1,0,1,1,0,1,1],
-    "4": [0,1,1,1,0,1,0],
-    "5": [1,1,0,1,0,1,1],
-    "6": [1,1,0,1,1,1,1],
-    "7": [1,0,1,0,0,1,0],
-    "8": [1,1,1,1,1,1,1],
-    "9": [1,1,1,1,0,1,1],
+    "0": [1,1,1,0,1,1,1],  #6
+    "1": [0,0,1,0,0,1,0],  #2
+    "2": [1,0,1,1,1,0,1],  #5
+    "3": [1,0,1,1,0,1,1],  #5
+    "4": [0,1,1,1,0,1,0],  #4
+    "5": [1,1,0,1,0,1,1],  #5
+    "6": [1,1,0,1,1,1,1],  #6
+    "7": [1,0,1,0,0,1,0],  #3
+    "8": [1,1,1,1,1,1,1],  #7
+    "9": [1,1,1,1,0,1,1],  #6
     "None" : [0,0,0,0,0,0,0]
 }
 
@@ -71,9 +72,60 @@ num_switch_stick_stable = {
                             "6": ["0", "9"],
                             "9": ["0", "6"]}
 
+## type1: with stick number change
+num_switch_stick_change_add_stable = {
+                                    "2": ["0", "6", "9"],
+                                    "3": ["0", "6"],
+                                    "4": ["3", "5"],
+                                    "5": "0",
+                                    "7": "4"}
+num_switch_stick_change_sub_stable = {
+                                    "0": ["2", "3", "5"],
+                                    "3": "4",
+                                    "4": "7",
+                                    "5": "4",
+                                    "6": ["2", "3"],
+                                    "9": "2"}
+num_switch_stick_change_add_two = {
+                                    "1": "4",
+                                    "2": "8",
+                                    "3": "8",
+                                    "4": "9",
+                                    "5": "8",
+                                    "7": "3"}
+num_switch_stick_change_sub_two = {
+                                    "3": "7",
+                                    "4": "1",
+                                    "8": ["2", "3", "5"],
+                                    "9": "4"}       
+## type1: with stick number change
+num_switch_stick_stable_two = {
+                                "2": "5",
+                                "5": "2"}
+                     
 # if with 2 sticks can be changed:
 ## idea1: list all possible
 ## idea2: add constrain on the second step which should to be number or None (2 digit with the first one to be None)
+
+# flag and state switch pair
+## [a, b] stands for a sticks have been operated in the equation. and b sticks is left unput besides
+## init: [0, 0], target: [2, 0]
+state_switch_flag_num = {
+    # number part
+    "num_switch_stick_change_add": [0, -1],
+    "num_switch_stick_change_sub": [1, 1],
+    "num_switch_stick_stable": [1, 0],
+    "num_switch_stick_change_add_stable": [1, -1],
+    "num_switch_stick_change_sub_stable": [2, 1],
+    "num_switch_stick_change_add_two": [0, -2],
+    "num_switch_stick_change_sub_two": [2, 2],
+    "num_switch_stick_stable_two": [2, 0]}
+state_switch_flag_op = {
+    # operation part
+    "op_switch_stick_stable_two": [2, 0],
+    "op_switch_stick_change_add": [0, -1],
+    "op_switch_stick_change_sub": [1, 1],
+    "op_switch_stick_stable": [1, 0]}
 
 # How to input? (not support number <-> operator)
 # [int] [op_list] [int] [op_list] [int]
@@ -154,6 +206,21 @@ def state_switch(switch_list, switch_type, cur_state, element_idx, queue, op = N
             pass
     return queue
 
+def next_state_search(cur_state, is_num = True):
+    def list_add(list_1, list_2=cur_state):
+        from operator import add
+        return list(map(add, list_1, list_2))
+    next_state_list = []
+    if is_num:
+        search_dict = state_switch_flag_num
+    else:
+        search_dict = state_switch_flag_op
+    for k, v in search_dict.items():
+        cand = list_add(v)
+        if cand[0] <= 2 and abs(cand[1]) <= 2 and (cand[0] - cand[1]) <= 2: #[1, -2], [2, -1] is in possible
+            next_state_list.append(k)
+    return next_state_list
+
 def num_2_digit(num):
     digits = []
     while num // 10:
@@ -218,6 +285,43 @@ def BFS_Move_One(equation, is_generate = False):
                 ans.append(cur_state[:-1])
     return ans
 
+def BFS_Move_Two(equation, move_one_ok = False, is_generate = False):
+    
+    def list_add(list_1):
+        list_2 = cur_state[-1]
+        from operator import add
+        return list(map(add, list_1, list_2))
+    # state_switch_flag_num
+    # state_switch_flag_op
+    queue = myQueue(equation + [[0, 0]])
+    ans = []
+    while queue.length() > 0:
+        cur_state = queue.outqueue()
+        if cur_state[-1] != [2, 0]:
+            state_switch_list_num = next_state_search(cur_state[-1], is_num=True)
+            state_switch_list_op = next_state_search(cur_state[-1], is_num=False)
+            for idx, element in enumerate(cur_state[:-1]):
+                try:
+                    num = int(element)
+                    digits = num_2_digit(num)
+                    for digit_idx in range(len(digits)):
+                        for state_pos in state_switch_list_num:
+                            queue = state_switch(globals()[state_pos], list_add(state_switch_flag_num[state_pos]), 
+                                                cur_state, idx, queue, op=None, digits=digits, digit_idx=digit_idx)                       
+                except ValueError as opError:
+                    for state_pos in state_switch_list_op:
+                        queue = state_switch(globals()[state_pos], list_add(state_switch_flag_op[state_pos]), 
+                                            cur_state, idx, queue, op=element)
+            # queue.show()
+        if cur_state[-1] == [1, 0] or cur_state[-1] == [2, 0]:
+            if move_one_ok or (not move_one_ok and cur_state[-1] == [2, 0]):
+                if equation_legal(cur_state[:-1]) and equation_hold(cur_state[:-1]) and not is_generate:
+                    ans.append(cur_state[:-1])
+                if equation_legal(cur_state[:-1]) and not equation_hold(cur_state[:-1]) and is_generate:
+                    ans.append(cur_state[:-1])
+    return ans
+
+
 def list_filter(ans, keep_digits=False, src_equation=None):
 
     def digit_number_same(num_1, num_2):
@@ -246,11 +350,11 @@ if __name__ == "__main__":
     Search Algorithm Part
     """
     # test case:
-    number_1 = "78"
-    op_1 = "-"
-    number_2 = "8"
+    number_1 = "79"
+    op_1 = "+"
+    number_2 = "7"
     op_2 = "="
-    number_3 = "87"
+    number_3 = "71"
     equation = [number_1, op_1, number_2, op_2, number_3]
 
     # state: number config & operator config & 
@@ -266,6 +370,14 @@ if __name__ == "__main__":
     else:
         print(" >> No Answer under this situation")
     
+    # Try BFS?
+    ans = BFS_Move_Two(equation, move_one_ok=True)
+    if ans:
+        ans = list_filter(ans)
+        print(ans)
+    else:
+        print(" >> No Answer under this situation")
+
     # Question Generation
     equation_true=["100"]
     while int(equation_true[-1]) > 99 or int(equation_true[-1]) < 0:

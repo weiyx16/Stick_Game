@@ -217,7 +217,7 @@ def next_state_search(cur_state, is_num = True):
         search_dict = state_switch_flag_op
     for k, v in search_dict.items():
         cand = list_add(v)
-        if cand[0] <= 2 and abs(cand[1]) <= 2 and (cand[0] - cand[1]) <= 2: #[1, -2], [2, -1] is in possible
+        if cand[0] <= 2 and abs(cand[1]) <= 2 and (cand[0] - cand[1]) <= 2: #[1, -2], [2, -1] is impossible
             next_state_list.append(k)
     return next_state_list
 
@@ -395,7 +395,11 @@ if __name__ == "__main__":
             num_2 = randrange(10)
             answer = num_1 * num_2
         equation_true = [str(num_1), op, str(num_2), "=", str(answer)]
-    questions = BFS_Move_One(equation_true, is_generate=True)
+    generate_two = True
+    if generate_two:
+        questions = BFS_Move_Two(equation_true, is_generate=True)
+    else:
+        questions = BFS_Move_One(equation_true, is_generate=True)
     if questions:
         questions = list_filter(questions, keep_digits = True, src_equation=equation_true)
         print(" >> Questions Generation with Answer: " + str(equation_true))

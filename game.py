@@ -27,29 +27,6 @@ class Stick_game():
         # must include one and only one "="
         # every "+""-""x": each side of the operator should have 2 numbers
 
-        """
-        # number encoding order with:
-        —— 0
-        | 1 | 2
-        —— 3
-        | 4 | 5
-        —— 6
-        """
-
-        self.num = {
-            "0": [1,1,1,0,1,1,1],  #6
-            "1": [0,0,1,0,0,1,0],  #2
-            "2": [1,0,1,1,1,0,1],  #5
-            "3": [1,0,1,1,0,1,1],  #5
-            "4": [0,1,1,1,0,1,0],  #4
-            "5": [1,1,0,1,0,1,1],  #5
-            "6": [1,1,0,1,1,1,1],  #6
-            "7": [1,0,1,0,0,1,0],  #3
-            "8": [1,1,1,1,1,1,1],  #7
-            "9": [1,1,1,1,0,1,1],  #6
-            "None" : [0,0,0,0,0,0,0]
-        }
-
         # num_change:
         ## type1: with stick number change
         self.num_switch_stick_change_add = {
@@ -356,24 +333,27 @@ class Stick_game():
                     ans_filted.append(answer)
         return ans_filted
 
-    def question_generate(self, is_generate_two = False):
-            # Question Generation
-        equation_true=["100"]
-        while int(equation_true[-1]) > 99 or int(equation_true[-1]) < 0:
-            op = play.op_cand[randrange(len(self.op_cand))]
-            if op == '+':
-                num_1 = randrange(100)
-                num_2 = randrange(100)
-                answer = num_1 + num_2
-            if op == '-':
-                num_1 = randrange(100)
-                num_2 = randrange(100)
-                answer = num_1 - num_2
-            else:
-                num_1 = randrange(10)
-                num_2 = randrange(10)
-                answer = num_1 * num_2
-            equation_true = [str(num_1), op, str(num_2), "=", str(answer)]
+    def question_generate(self, is_generate_two = False, given_equation = None):
+        # Question Generation
+        if given_equation and self.equation_satisfy(given_equation):
+                equation_true = given_equation
+        else:
+            equation_true=["100"]
+            while int(equation_true[-1]) > 99 or int(equation_true[-1]) < 0:
+                op = self.op_cand[randrange(len(self.op_cand))]
+                if op == '+':
+                    num_1 = randrange(100)
+                    num_2 = randrange(100)
+                    answer = num_1 + num_2
+                elif op == '-':
+                    num_1 = randrange(100)
+                    num_2 = randrange(100)
+                    answer = num_1 - num_2
+                else:
+                    num_1 = randrange(10)
+                    num_2 = randrange(10)
+                    answer = num_1 * num_2
+                equation_true = [str(num_1), op, str(num_2), "=", str(answer)]
         if is_generate_two:
             questions = self.BFS_Move_Two(move_one_ok=False, is_generate=True, equation_true=equation_true)
         else:
@@ -381,18 +361,20 @@ class Stick_game():
         if questions:
             questions = self.list_filter(questions, keep_digits = True, src_equation=equation_true)
             print(" >> Questions Generation with Answer: " + str(equation_true))
-            print(questions)
+            return questions
         else:
             print(" >> No Question under this situation with Answer: " + str(equation_true))
+            return None
 
     def One_Stick(self):
         ans = self.BFS_Move_One()
         if ans:
             ans = self.list_filter(ans)
-            print(ans)
+            return ans
         else:
             print(" >> No Answer under this situation")
-    
+            return None
+
     def Two_Stick(self, move_one_ok=False):
         ans = self.BFS_Move_Two(move_one_ok)
         if ans:
@@ -405,9 +387,10 @@ class Stick_game():
                     if ans_ not in ans_one:
                         ans_tmp.append(ans_)
                 ans = ans_tmp
-            print(ans)
+            return ans
         else:
             print(" >> No Answer under this situation")
+            return None
 
 if __name__ == "__main__":
     """
@@ -427,5 +410,15 @@ if __name__ == "__main__":
     # state switch: type 2 or add type1 with sub type2
     play.One_Stick()
     play.Two_Stick(False)  # in move one: there's a bug: e.g 79->70->76 (2,0) but in fact from 79 to 76 only 1 stick moved.
-    play.question_generate(False)
-    play.question_generate(True)
+    # questions = []
+    # for i in range(20):
+    #     tmp = play.question_generate(False)
+    #     if tmp:
+    #         questions = questions + tmp
+    # for i in range(20):
+    #     tmp = play.question_generate(True)
+    #     if tmp:
+    #         questions = questions + tmp
+    # with open('questions.txt', 'w') as f:
+    #     for item in questions:
+    #         f.write("%s\n" % item)

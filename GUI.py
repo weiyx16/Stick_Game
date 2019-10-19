@@ -3,10 +3,42 @@ import sys
 from random import randrange
 from game import Stick_game
 from PyQt5.QtWidgets import (QWidget, QLabel, QLineEdit, QComboBox, 
-    QToolTip, QPushButton, QApplication, QMessageBox, QDesktopWidget)
+    QToolTip, QPushButton, QApplication, QMessageBox, QDesktopWidget, QListWidget)
 from PyQt5.QtGui import (QIcon, QFont, QPainter, QBrush, QPen, QPalette, QPixmap)
 from PyQt5.QtCore import QCoreApplication, Qt
 
+class Question_GUI(QWidget):
+    def __init__(self, parent=None, ans=None, questions=None):
+        super(Question_GUI, self).__init__(parent)
+        self.initUI(ans, questions)
+    
+    def initUI(self, ans, questions):
+        self.setGeometry(300, 300, 200, 200) # 100*300
+        QToolTip.setFont(QFont('SansSerif', 15))
+        self.setWindowTitle('Question Generation')
+        self.setWindowIcon(QIcon('./image/ICON.png'))       
+        
+        self.answer_show = QListWidget(self)
+        self.answer_show.resize(200, 20)
+        self.answer_show.addItem(self.list2str(ans))  # list 2 str
+
+        self.question_show = QListWidget(self)
+        self.question_show.resize(200, 170)
+        self.question_show.move(0, 30)
+        if questions:
+            for q in questions:
+                self.question_show.addItem(self.list2str(q))
+        else:
+            self.question_show.addItem('当前条件下没有问题生成')
+        # self.question_show.itemClicked.connect(self.question_choose)
+        
+        self.show()
+        
+    def question_choose(self, item):
+        QMessageBox.information(self, "提示", "你选择了: " + item.text().encode('utf-8'), QMessageBox.Ok, QMessageBox.Ok)
+
+    def list2str(self, l):
+        return ' '.join(l)
 class GUI(QWidget):
      
     def __init__(self):
@@ -362,13 +394,34 @@ class GUI(QWidget):
             self.op_update_display(answer[1], 1, is_ans = True)
             self.op_update_display(answer[3], 2, is_ans = True)
     
-    def Generation_Step_One(self):
-        # TODO
-        pass
+    def Generation_Ground_truth(self):
+        reply = QMessageBox.question(self, '提示',
+            "若以当前输入等式为答案生成问题，请选Yes\n否则，随机生成答案与问题", QMessageBox.Yes |
+            QMessageBox.No, QMessageBox.No)
+ 
+        if reply == QMessageBox.Yes:
+            if self.number1.text() and self.number2.text() and self.number3.text():
+                tmp_equation = ['%d' % int(self.number1.text()), self.op1.currentText(), '%d' % int(self.number2.text()), self.op2.currentText(), '%d' % int(self.number3.text())]
+                if self.play.equation_satisfy(tmp_equation):
+                    return tmp_equation
+                else:
+                    QMessageBox.warning(self, '注意', "当前输入等式不满足，无法将其作为答案\n现在随机生成", QMessageBox.Ok, QMessageBox.Ok)
+                    return None
+            else:
+                QMessageBox.warning(self, '注意', "当前输入等式不满足，无法将其作为答案\n现在随机生成", QMessageBox.Ok, QMessageBox.Ok)
+                return None
+        else:
+            return None
     
+    def Generation_Step_One(self):
+        given_equation = self.Generation_Ground_truth()
+        questions, equation_true = self.play.question_generate(is_generate_two=False, given_equation=given_equation)
+        self.question_show = Question_GUI(parent=None, ans=equation_true, questions=questions)
+
     def Generation_Step_Two(self):
-        # TODO
-        pass
+        given_equation = self.Generation_Ground_truth()
+        questions, equation_true = self.play.question_generate(is_generate_two=True, given_equation=given_equation)
+        self.question_show = Question_GUI(parent=None, ans=equation_true, questions=questions)
 
     def Question_from_Database(self):
         if not self.question_database:

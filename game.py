@@ -361,10 +361,10 @@ class Stick_game():
         if questions:
             questions = self.list_filter(questions, keep_digits = True, src_equation=equation_true)
             print(" >> Questions Generation with Answer: " + str(equation_true))
-            return questions
+            return questions, equation_true
         else:
             print(" >> No Question under this situation with Answer: " + str(equation_true))
-            return None
+            return None, equation_true
 
     def One_Stick(self):
         ans = self.BFS_Move_One()

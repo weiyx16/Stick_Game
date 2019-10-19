@@ -344,18 +344,24 @@ class GUI(QWidget):
                 show_digit1 = self.digit3_1_ans
                 show_digit2 = self.digit3_2_ans           
         if number is not None:
-            number = int(number)                                
-            if number > 99:
-                reply = QMessageBox.information(self, '提示', "请输入两位数字", QMessageBox.Ok, QMessageBox.Ok)
-            elif number > 9:
-                # number 2 digits
-                digit1 = number / 10
-                digit2 = number - digit1 * 10
-                self.digit_show(digit1, show_digit1)
-                self.digit_show(digit2, show_digit2)
-            else:
+            try:
+                number = int(number)                                
+                if number > 99:
+                    reply = QMessageBox.information(self, '提示', "请输入两位数字", QMessageBox.Ok, QMessageBox.Ok)
+                elif number > 9:
+                    # number 2 digits
+                    digit1 = number // 10
+                    digit2 = number - digit1 * 10
+                    self.digit_show(digit1, show_digit1)
+                    self.digit_show(digit2, show_digit2)
+                else:
+                    self.digit_show(None, show_digit1)
+                    self.digit_show(number, show_digit2)
+            except:
+                # clear!
                 self.digit_show(None, show_digit1)
-                self.digit_show(number, show_digit2)
+                self.digit_show(None, show_digit2)
+                print('None')
         else:
             # clear!
             self.digit_show(None, show_digit1)
